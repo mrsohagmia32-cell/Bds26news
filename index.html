@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BDS 26 - বিডিএস ২৬</title>
+    <title>BDS-26news /title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
         body { background: #f0f2f5; color: #1c1e21; line-height: 1.6; }
@@ -24,7 +24,6 @@
         
         .single-post-image { width: 100%; max-height: 400px; object-fit: cover; border-radius: 6px; margin: 15px 0; }
         
-        /* নিউজ বডির স্টাইল */
         .article-body h2 { font-size: 22px; color: #b30000; margin: 20px 0 10px 0; border-bottom: 2px solid #f0f2f5; padding-bottom: 5px; }
         .article-body h3 { font-size: 18px; color: #333; margin: 15px 0 8px 0; }
         .article-body p { margin-bottom: 12px; font-size: 16px; color: #333; }
@@ -36,7 +35,9 @@
         textarea { height: 250px; resize: vertical; border-radius: 0 0 4px 4px; margin-top: 0; }
         label { font-weight: bold; font-size: 14px; color: #333; display: block; margin-top: 10px; }
         
-        /* এডিটর টুলবার বাটন ডিজাইন */
+        .config-box { background: #f8f9fa; padding: 15px; border: 1px solid #ddd; border-radius: 6px; margin-bottom: 20px; }
+        .config-box h3 { color: #333; margin-bottom: 10px; font-size: 18px; border-bottom: 1px solid #ddd; padding-bottom: 5px; }
+        
         .editor-tools { background: #f0f2f5; padding: 8px; border: 1px solid #ccd0d5; border-bottom: none; border-radius: 4px 4px 0 0; display: flex; gap: 8px; flex-wrap: wrap; }
         .editor-tools button { background: #fff; border: 1px solid #ccd0d5; padding: 6px 12px; border-radius: 3px; cursor: pointer; font-size: 13px; font-weight: bold; color: #333; }
         .editor-tools button:hover { background: #e4e6eb; }
@@ -67,13 +68,18 @@
     <div class="container" id="main-container"></div>
 
     <script>
-        // ======= কনফিগারেশন =======
-        const GITHUB_USERNAME = "mrsohagmia32-cell"; 
-        const REPO_NAME = "bds-26news"; 
-        const FILE_PATH = "posts.json"; 
-       
+        // এডমিন পাসওয়ার্ড (এটি প্রয়োজনে পরিবর্তন করতে পারেন)
         const ADMIN_PASS = "Sa28747228@"; 
-        // ===========================
+        const FILE_PATH = "posts.json"; 
+
+        // লোকালস্টোরেজ থেকে কনফিগারেশন বা টোকেন রিড করার ফাংশন
+        function getConfig() {
+            return {
+                username: localStorage.getItem('gh_username') || "mrsohagmia32-cell",
+                repo: localStorage.getItem('gh_repo') || "bds26",
+                token: localStorage.getItem('gh_token') || "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"
+            };
+        }
 
         function router() {
             const urlParams = new URLSearchParams(window.location.search);
@@ -115,13 +121,14 @@
             const container = document.getElementById('main-container');
             container.innerHTML = "<h2>সর্বশেষ সংবাদ</h2><div id='posts-container'>সংবাদ লোড হচ্ছে...</div>";
             const postsContainer = document.getElementById('posts-container');
+            const config = getConfig();
 
-            const url = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/main/${FILE_PATH}?t=${new Date().getTime()}`;
+            const url = `https://raw.githubusercontent.com/${config.username}/${config.repo}/main/${FILE_PATH}?t=${new Date().getTime()}`;
             
             try {
                 let response = await fetch(url);
                 if (!response.ok) {
-                    postsContainer.innerHTML = "<p>এখনো কোনো সংবাদ প্রকাশিত হয়নি।</p>";
+                    postsContainer.innerHTML = "<p>এখনো কোনো সংবাদ প্রকাশিত হয়নি বা কনফিগারেশন চেক করুন।</p>";
                     return;
                 }
                 let posts = await response.json();
@@ -153,7 +160,7 @@
                     `;
                 });
             } catch (error) {
-                postsContainer.innerHTML = "<p>সংবাদ লোড করতে সমস্যা হয়েছে।</p>";
+                postsContainer.innerHTML = "<p>সংবাদ লোড করতে সমস্যা হয়েছে। দয়া করে এডমিন প্যানেল থেকে আপনার GitHub টোকেন ও রিপোজিটরি নাম চেক করুন।</p>";
             }
         }
 
@@ -161,8 +168,9 @@
             setActiveNav('home');
             const container = document.getElementById('main-container');
             container.innerHTML = "<p>সংবাদ লোড হচ্ছে...</p>";
+            const config = getConfig();
 
-            const url = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/main/${FILE_PATH}?t=${new Date().getTime()}`;
+            const url = `https://raw.githubusercontent.com/${config.username}/${config.repo}/main/${FILE_PATH}?t=${new Date().getTime()}`;
             
             try {
                 let response = await fetch(url);
@@ -193,8 +201,28 @@
         }
 
         function showAdminPanel() {
+            const config = getConfig();
             const container = document.getElementById('main-container');
             container.innerHTML = `
+                <h2>এডমিন ড্যাশবোর্ড</h2>
+                
+                <!-- গিটহাব কনফিগারেশন / টোকেন পরিবর্তনের সেকশন -->
+                <div class="config-box">
+                    <h3>⚙️ গিটহাব সেটিংস ও টোকেন পরিবর্তন</h3>
+                    <label>GitHub Username:</label>
+                    <input type="text" id="cfg-username" value="${config.username}">
+                    
+                    <label>Repository Name (রিপোজিটরির নাম):</label>
+                    <input type="text" id="cfg-repo" value="${config.repo}">
+                    
+                    <label>GitHub Personal Access Token:</label>
+                    <input type="text" id="cfg-token" value="${config.token}">
+                    
+                    <button type="button" class="secondary-btn" style="background:#28a745; color:#fff; border:none; padding:10px 15px; border-radius:4px; cursor:pointer; font-weight:bold; width:100%; margin-top:5px;" onclick="saveConfig()">সেটিংস সেভ করুন</button>
+                </div>
+
+                <hr style="margin: 20px 0; border:0; border-top:1px solid #ddd;">
+
                 <h2>নতুন সংবাদ প্রকাশ করুন</h2>
                 
                 <label>সংবাদের শিরোনাম:</label>
@@ -219,6 +247,23 @@
                 <button class="submit-btn" onclick="publishPost()">সংবাদ পাবলিশ করুন</button>
                 <div id="status-msg" class="loading"></div>
             `;
+        }
+
+        function saveConfig() {
+            let u = document.getElementById('cfg-username').value.trim();
+            let r = document.getElementById('cfg-repo').value.trim();
+            let t = document.getElementById('cfg-token').value.trim();
+
+            if(!u || !r || !t) {
+                alert("সবগুলো ফিল্ড পূরণ করুন!");
+                return;
+            }
+
+            localStorage.setItem('gh_username', u);
+            localStorage.setItem('gh_repo', r);
+            localStorage.setItem('gh_token', t);
+
+            alert("গিটহাব সেটিংস ও টোকেন সফলভাবে আপডেট করা হয়েছে!");
         }
 
         function formatText(type) {
@@ -278,6 +323,7 @@
             let image = document.getElementById('post-image').value.trim();
             let content = document.getElementById('post-content').value.trim();
             let msgBox = document.getElementById('status-msg');
+            const config = getConfig();
 
             if(!title || !content) {
                 alert("শিরোনাম এবং বিবরণ উভয়ই পূরণ করুন!");
@@ -290,14 +336,14 @@
 
             msgBox.innerHTML = "সংবাদ পাবলিশ হচ্ছে...";
 
-            const apiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/contents/${FILE_PATH}`;
+            const apiUrl = `https://api.github.com/repos/${config.username}/${config.repo}/contents/${FILE_PATH}`;
 
             try {
                 let existingSha = null;
                 let posts = [];
 
                 let res = await fetch(apiUrl, {
-                    headers: { 'Authorization': `token ${GITHUB_TOKEN}` }
+                    headers: { 'Authorization': `token ${config.token}` }
                 });
 
                 if (res.ok) {
@@ -325,7 +371,7 @@
                 let updateRes = await fetch(apiUrl, {
                     method: 'PUT',
                     headers: {
-                        'Authorization': `token ${GITHUB_TOKEN}`,
+                        'Authorization': `token ${config.token}`,
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
@@ -336,7 +382,6 @@
                 });
 
                 if (updateRes.ok) {
-                    msgBox.nn = "";
                     msgBox.innerHTML = "সফলভাবে সংবাদ পাবলিশ হয়েছে!";
                     setTimeout(() => { navigate('home'); }, 1500);
                 } else {
@@ -345,7 +390,7 @@
                 }
 
             } catch (e) {
-                msgBox.innerHTML = "সার্ভার কানেকশনে সমস্যা হয়েছে।";
+                msgBox.innerHTML = "সার্ভার কানেকশনে সমস্যা হয়েছে। আপনার টোকেন বা ইউজারনেম সঠিক আছে কি না চেক করুন।";
                 console.error(e);
             }
         }
@@ -360,4 +405,4 @@
         window.onload = router;
     </script>
 </body>
-    </html>
+</html>
