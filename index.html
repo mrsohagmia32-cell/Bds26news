@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BDS 26 - বিডিএস ২৬</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        body { background: #f0f2f5; color: #1c1e21; line-height: 1.6; }
+        header { background: #b30000; color: #fff; padding: 20px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        header h1 { font-size: 32px; font-weight: bold; letter-spacing: 1px; }
+        header p { font-size: 14px; color: #ffcccc; margin-top: 5px; }
+        nav { background: #800000; padding: 10px; text-align: center; }
+        nav button { background: none; border: none; color: white; font-size: 16px; cursor: pointer; margin: 0 15px; padding: 6px 15px; border-radius: 4px; font-weight: bold; }
+        nav button:hover, nav button.active { background: #b30000; }
+        .container { max-width: 800px; margin: 20px auto; padding: 20px; background: #fff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        
+        .post-card { border-bottom: 1px solid #e5e5e5; padding: 20px 0; margin-bottom: 15px; display: flex; gap: 15px; align-items: flex-start; }
+        .post-thumb { width: 150px; height: 100px; object-fit: cover; border-radius: 4px; flex-shrink: 0; background: #ddd; }
+        .post-info { flex-grow: 1; }
+        .post-card h3 a { color: #b30000; text-decoration: none; font-size: 20px; }
+        .post-card h3 a:hover { text-decoration: underline; }
+        .post-date { font-size: 12px; color: #65676b; margin: 4px 0 8px 0; }
+        
+        .single-post-image { width: 100%; max-height: 400px; object-fit: cover; border-radius: 6px; margin: 15px 0; }
+        
+        .article-body h2 { font-size: 22px; color: #b30000; margin: 20px 0 10px 0; border-bottom: 2px solid #f0f2f5; padding-bottom: 5px; }
+        .article-body h3 { font-size: 18px; color: #333; margin: 15px 0 8px 0; }
+        .article-body p { margin-bottom: 12px; font-size: 16px; color: #333; }
+        .article-body strong { font-weight: bold; color: #111; }
+        .article-body a { color: #0066cc; text-decoration: underline; font-weight: bold; }
+        .article-body a:hover { color: #004499; }
+        
+        input, textarea { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccd0d5; border-radius: 4px; font-size: 14px; }
+        textarea { height: 250px; resize: vertical; border-radius: 0 0 4px 4px; margin-top: 0; }
+        label { font-weight: bold; font-size: 14px; color: #333; display: block; margin-top: 10px; }
+        
+        .config-box { background: #fff3cd; border: 1px solid #ffeeba; padding: 15px; border-radius: 6px; margin-bottom: 20px; }
+        .config-box h3 { color: #856404; margin-bottom: 10px; font-size: 18px; border-bottom: 1px solid #ffeeba; padding-bottom: 5px; }
+        
+        .editor-tools { background: #f0f2f5; padding: 8px; border: 1px solid #ccd0d5; border-bottom: none; border-radius: 4px 4px 0 0; display: flex; gap: 8px; flex-wrap: wrap; }
+        .editor-tools button { background: #fff; border: 1px solid #ccd0d5; padding: 6px 12px; border-radius: 3px; cursor: pointer; font-size: 13px; font-weight: bold; color: #333; }
+        .editor-tools button:hover { background: #e4e6eb; }
+        
+        button.submit-btn { background: #b30000; color: white; border: none; padding: 12px 20px; font-size: 16px; border-radius: 4px; cursor: pointer; width: 100%; font-weight: bold; margin-top: 15px; }
+        button.submit-btn:hover { background: #990000; }
+        .loading { color: #d97706; font-weight: bold; margin-top: 10px; }
+        .back-btn { display: inline-block; margin-bottom: 15px; color: #b30000; text-decoration: none; font-weight: bold; }
+        
+        @media(max-width: 600px) {
+            .post-card { flex-direction: column; }
+            .post-thumb { width: 100%; height: 180px; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>BDS 26</h1>
+        <p>সঠিক সংবাদ, সত্যের সাথে</p>
+    </header>
+
+    <nav>
+        <button onclick="navigate('home')" id="nav-home" class="active">হোমপেজ</button>
+        <button onclick="navigate('admin')" id="nav-admin">এডমিন প্যানেল</button>
+    </nav>
+
+    <div class="container" id="main-container"></div>
+
+    <script>
+        const ADMIN_PASS = "Sa28747228@"; 
+        const FILE_PATH = "posts.json"; 
+
+        function getConfig() {
+            return {
+                username: localStorage.getItem('gh_username') || "mrsohagmia32-cell",
+                repo: localStorage.getItem('gh_repo') || "bds26",
+                token: localStorage.getItem('gh_token') || "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"
+            };
+        }
+
+        function router() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const slug = urlParams.get('slug');
+            const page = urlParams.get('page');
+
+            if (slug) {
+                loadSinglePost(slug);
+            } else if (page === 'admin') {
+                checkAdminAuth();
+            } else {
+                loadHomePosts();
+            }
+        }
+
+        function navigate(target, param = '') {
+            if (target === 'home') {
+                window.location.href = window.location.pathname;
+            } else if (target === 'admin') {
+                window.location.href = window.location.pathname + '?page=admin';
+            } else if (target === 'post') {
+                window.location.href = window.location.pathname + '?slug=' + param;
+            }
+        }
+
+        function checkAdminAuth() {
+            setActiveNav('admin');
+            let userPass = prompt("এডমিন প্যানেলে প্রবেশ করতে পাসওয়ার্ড দিন:");
+            if (userPass === ADMIN_PASS) {
+                showAdminPanel();
+            } else {
+                alert("ভুল পাসওয়ার্ড!");
+                navigate('home');
+            }
+        }
+
+        async function loadHomePosts() {
+            setActiveNav('home');
+            const container = document.getElementById('main-container');
+            container.innerHTML = "<h2>সর্বশেষ সংবাদ</h2><div id='posts-container'>সংবাদ লোড হচ্ছে...</div>";
+            const postsContainer = document.getElementById('posts-container');
+            const config = getConfig();
+
+            const url = `https://raw.githubusercontent.com/${config.username}/${config.repo}/main/${FILE_PATH}?t=${new Date().getTime()}`;
+            
+            try {
+                let response = await fetch(url);
+                if (!response.ok) {
+                    postsContainer.innerHTML = "<p>এখনো কোনো সংবাদ প্রকাশিত হয়নি। এডমিন প্যানেলে গিয়ে টোকেন ও রিপোজিটরি ঠিক আছে কিনা চেক করুন।</p>";
+                    return;
+                }
+                let posts = await response.json();
+                
+                if(posts.length === 0) {
+                    postsContainer.innerHTML = "<p>কোনো সংবাদ পাওয়া যায়নি।</p>";
+                    return;
+                }
+
+                postsContainer.innerHTML = "";
+                posts.slice().reverse().forEach((post) => {
+                    let thumb = post.image ? post.image : 'https://via.placeholder.com/150x100?text=BDS+26';
+                    let postSlug = post.slug || 'news-' + Date.now();
+                    
+                    let tempDiv = document.createElement("div");
+                    tempDiv.innerHTML = post.content;
+                    let plainText = tempDiv.textContent || tempDiv.innerText || "";
+
+                    postsContainer.innerHTML += `
+                        <div class="post-card">
+                            <img src="${escapeHTML(thumb)}" class="post-thumb" alt="News Image">
+                            <div class="post-info">
+                                <h3><a href="#" onclick="navigate('post', '${postSlug}'); return false;">${escapeHTML(post.title)}</a></h3>
+                                <div class="post-date">প্রকাশিত: ${post.date}</div>
+                                <p>${escapeHTML(plainText.substring(0, 140))}...</p>
+                                <a href="#" onclick="navigate('post', '${postSlug}'); return false;" style="color: #b30000; text-decoration: none; font-weight: bold; font-size: 14px; display:inline-block; margin-top:5px;">পূর্ণাঙ্গ সংবাদ পড়ুন →</a>
+                            </div>
+                        </div>
+                    `;
+                });
+            } catch (error) {
+                postsContainer.innerHTML = "<p>সংবাদ লোড করতে সমস্যা হয়েছে।</p>";
+            }
+        }
+
+        async function loadSinglePost(slug) {
+            setActiveNav('home');
+            const container = document.getElementById('main-container');
+            container.innerHTML = "<p>সংবাদ লোড হচ্ছে...</p>";
+            const config = getConfig();
+
+            const url = `https://raw.githubusercontent.com/${config.username}/${config.repo}/main/${FILE_PATH}?t=${new Date().getTime()}`;
+            
+            try {
+                let response = await fetch(url);
+                let posts = await response.json();
+                
+                let post = posts.find(p => p.slug === slug);
+                
+                if (post) {
+                    document.title = post.title + " - BDS 26";
+                    let imgHtml = post.image ? `<img src="${escapeHTML(post.image)}" class="single-post-image" alt="News Image">` : '';
+                    
+                    container.innerHTML = `
+                        <a class="back-btn" href="#" onclick="navigate('home'); return false;">← সব সংবাদ দেখুন</a>
+                        <div style="border:none;">
+                            <h2 style="color: #b30000; margin-bottom: 5px; font-size: 26px;">${escapeHTML(post.title)}</h2>
+                            <div class="post-date">প্রকাশিত: ${post.date}</div>
+                            ${imgHtml}
+                            <hr style="margin: 15px 0; border:0; border-top:1px solid #ddd;">
+                            <div class="article-body">${post.content}</div>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = "<p>সংবাদটি খুঁজে পাওয়া যায়নি!</p><br><a href='#' onclick=\"navigate('home'); return false;\">হোমপেজে ফিরে যান</a>";
+                }
+            } catch (error) {
+                container.innerHTML = "<p>সংবাদ লোড করতে সমস্যা হয়েছে।</p>";
+            }
+        }
+
+        function showAdminPanel() {
+            const config = getConfig();
+            const container = document.getElementById('main-container');
+            container.innerHTML = `
+                <div class="config-box">
+                    <h3>⚙️ গিটহাব সেটিংস ও টোকেন পরিবর্তন</h3>
+                    <label>GitHub Username:</label>
+                    <input type="text" id="cfg-username" value="${config.username}">
+                    
+                    <label>Repository Name (রিপোজিটরির নাম):</label>
+                    <input type="text" id="cfg-repo" value="${config.repo}">
+                    
+                    <label>GitHub Personal Access Token:</label>
+                    <input type="text" id="cfg-token" value="${config.token}">
+                    
+                    <button type="button" style="background:#28a745; color:#fff; border:none; padding:10px 15px; border-radius:4px; cursor:pointer; font-weight:bold; width:100%; margin-top:10px;" onclick="saveConfig()">সেটিংস ও টোকেন সেভ করুন</button>
+                </div>
+
+                <h2>নতুন সংবাদ প্রকাশ করুন</h2>
+                
+                <label>সংবাদের শিরোনাম:</label>
+                <input type="text" id="post-title" placeholder="যেমন: আজকের তাজা খবর..." oninput="autoGenerateSlug()">
+                
+                <label>ইউআরএল স্লাগ / পারমালিংক:</label>
+                <input type="text" id="post-slug" placeholder="ইংরেজিতে স্লাগ লিখুন...">
+                
+                <label>ছবির সরাসরি লিংক (Image URL):</label>
+                <input type="text" id="post-image" placeholder="https://...">
+                
+                <label>সংবাদের বিস্তারিত বিবরণ:</label>
+                
+                <div class="editor-tools">
+                    <button type="button" onclick="formatText('bold')"><b>B (বোল্ড)</b></button>
+                    <button type="button" onclick="formatText('h2')">H2 (বড় হেডিং)</button>
+                    <button type="button" onclick="formatText('h3')">H3 (ছোট হেডিং)</button>
+                    <button type="button" onclick="formatText('link')">🔗 হাইপারলিংক / ক্রেডিট</button>
+                </div>
+                <textarea id="post-content" placeholder="লেখার ভেতরের অংশ সিলেক্ট করে উপরের বাটনগুলোতে ক্লিক করুন..."></textarea>
+                
+                <button class="submit-btn" onclick="publishPost()">সংবাদ পাবলিশ করুন</button>
+                <div id="status-msg" class="loading"></div>
+            `;
+        }
+
+        function saveConfig() {
+            let u = document.getElementById('cfg-username').value.trim();
+            let r = document.getElementById('cfg-repo').value.trim();
+            let t = document.getElementById('cfg-token').value.trim();
+
+            if(!u || !r || !t) {
+                alert("সবগুলো ফিল্ড পূরণ করুন!");
+                return;
+            }
+
+            localStorage.setItem('gh_username', u);
+            localStorage.setItem('gh_repo', r);
+            localStorage.setItem('gh_token', t);
+
+            alert("সফলভাবে গিটহাব সেটিংস ও টোকেন সেভ হয়েছে!");
+            location.reload();
+        }
+
+        function formatText(type) {
+            let textarea = document.getElementById('post-content');
+            let start = textarea.selectionStart;
+            let end = textarea.selectionEnd;
+            let text = textarea.value;
+            let selectedText = text.substring(start, end);
+            
+            let openTag = '', closeTag = '';
+
+            if (type === 'bold') {
+                if(!selectedText) { alert("প্রথমে যে লেখাটি বোল্ড করতে চান তা সিলেক্ট করুন!"); return; }
+                openTag = '<strong>'; closeTag = '</strong>';
+            } else if (type === 'h2') {
+                if(!selectedText) { alert("প্রথমে যে লাইনটি হেডিং করতে চান তা সিলেক্ট করুন!"); return; }
+                openTag = '<h2>'; closeTag = '</h2>';
+            } else if (type === 'h3') {
+                if(!selectedText) { alert("প্রথমে যে লাইনটি হেডিং করতে চান তা সিলেক্ট করুন!"); return; }
+                openTag = '<h3>'; closeTag = '</h3>';
+            } else if (type === 'link') {
+                let url = prompt("যে ওয়েবসাইট বা সোর্সের লিংক যুক্ত করতে চান তার URL দিন (যেমন: https://example.com):");
+                if (!url) return;
+                let linkText = selectedText ? selectedText : prompt("লিংকের টেক্সট বা নাম কী হবে? (যেমন: সূত্র বা প্রোথম আলো):", "সোর্স");
+                if (!linkText) linkText = url;
+                
+                let tag = `<a href="${url}" target="_blank">${linkText}</a>`;
+                textarea.value = text.substring(0, start) + tag + text.substring(end);
+                textarea.focus();
+                return;
+            }
+
+            textarea.value = text.substring(0, start) + openTag + selectedText + closeTag + text.substring(end);
+            textarea.focus();
+            textarea.setSelectionRange(start + openTag.length, end + openTag.length);
+        }
+
+        function autoGenerateSlug() {
+            let title = document.getElementById('post-title').value;
+            let slug = title.toLowerCase()
+                .trim()
+                .replace(/[^\w\s-]/g, '')
+                .replace(/[\s_-]+/g, '-');
+            document.getElementById('post-slug').value = slug;
+        }
+
+        function setActiveNav(tab) {
+            document.getElementById('nav-home').classList.remove('active');
+            document.getElementById('nav-admin').classList.remove('active');
+            if(tab === 'home') document.getElementById('nav-home').classList.add('active');
+            if(tab === 'admin') document.getElementById('nav-admin').classList.add('active');
+        }
+
+        async function publishPost() {
+            let title = document.getElementById('post-title').value.trim();
+            let slug = document.getElementById('post-slug').value.trim();
+            let image = document.getElementById('post-image').value.trim();
+            let content = document.getElementById('post-content').value.trim();
+            let msgBox = document.getElementById('status-msg');
+            const config = getConfig();
+
+            if(!title || !content) {
+                alert("শিরোনাম এবং বিবরণ উভয়ই পূরণ করুন!");
+                return;
+            }
+
+            if(!slug) {
+                slug = 'news-' + Date.now();
+            }
+
+            msgBox.innerHTML = "সংবাদ পাবলিশ হচ্ছে...";
+
+            const apiUrl = `https://api.github.com/repos/${config.username}/${config.repo}/contents/${FILE_PATH}`;
+
+            try {
+                let existingSha = null;
+                let posts = [];
+
+                let res = await fetch(apiUrl, {
+                    headers: { 'Authorization': `token ${config.token}` }
+                });
+
+                if (res.ok) {
+                    let fileData = await res.json();
+                    existingSha = fileData.sha;
+                    let decodedContent = decodeURIComponent(escape(atob(fileData.content)));
+                    posts = JSON.parse(decodedContent);
+                }
+
+                if(posts.some(p => p.slug === slug)) {
+                    slug = slug + '-' + Math.floor(Math.random() * 1000);
+                }
+
+                let newPost = {
+                    title: title,
+                    slug: slug,
+                    image: image,
+                    content: content,
+                    date: new Date().toLocaleDateString('bn-BD', { year: 'numeric', month: 'long', day: 'numeric' })
+                };
+                posts.push(newPost);
+
+                let encodedContent = btoa(unescape(encodeURIComponent(JSON.stringify(posts, null, 2))));
+
+                let updateRes = await fetch(apiUrl, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `token ${config.token}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: `Publish news: ${title}`,
+                        content: encodedContent,
+                        sha: existingSha
+                    })
+                });
+
+                if (updateRes.ok) {
+                    msgBox.innerHTML = "সফলভাবে সংবাদ পাবলিশ হয়েছে!";
+                    setTimeout(() => { navigate('home'); }, 1500);
+                } else {
+                    let err = await updateRes.json();
+                    msgBox.innerHTML = "ত্রুটি হয়েছে: " + err.message;
+                }
+
+            } catch (e) {
+                msgBox.innerHTML = "সার্ভার কানেকশনে সমস্যা হয়েছে। আপনার টোকেন বা ইউজারনেম সঠিক আছে কি না চেক করুন।";
+                console.error(e);
+            }
+        }
+
+        function escapeHTML(str) {
+            if(!str) return '';
+            return str.replace(/[&<>'"]/g, 
+                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+            );
+        }
+
+        window.onload = router;
+    </script>
+</body>
+</html>
