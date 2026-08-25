@@ -22,16 +22,25 @@
         .post-card h3 a:hover { text-decoration: underline; }
         .post-date { font-size: 12px; color: #65676b; margin: 4px 0 8px 0; }
         
-        /* সিঙ্গেল পোস্ট পেজ লেআউট */
         .single-post-image { width: 100%; max-height: 400px; object-fit: cover; border-radius: 6px; margin: 15px 0; }
         
+        /* নিউজ বডি স্টাইল যেখানে হেডিং ও লিংক সুন্দর দেখাবে */
+        .article-body h2 { font-size: 22px; color: #b30000; margin: 20px 0 10px 0; border-bottom: 2px solid #f0f2f5; padding-bottom: 5px; }
+        .article-body h3 { font-size: 18px; color: #333; margin: 15px 0 8px 0; }
+        .article-body p { margin-bottom: 12px; font-size: 16px; color: #333; }
+        .article-body a { color: #0066cc; text-decoration: underline; font-weight: bold; }
+        .article-body a:hover { color: #004499; }
+        
         input, textarea { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccd0d5; border-radius: 4px; font-size: 14px; }
-        textarea { height: 200px; resize: vertical; }
+        textarea { height: 250px; resize: vertical; }
         label { font-weight: bold; font-size: 14px; color: #333; display: block; margin-top: 10px; }
+        
+        .editor-tools { background: #f8f9fa; padding: 8px; border: 1px solid #ccd0d5; border-bottom: none; border-radius: 4px 4px 0 0; display: flex; gap: 10px; }
+        .editor-tools button { background: #e4e6eb; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; font-size: 13px; font-weight: bold; color: #333; }
+        .editor-tools button:hover { background: #d8dadf; }
+        
         button.submit-btn { background: #b30000; color: white; border: none; padding: 12px 20px; font-size: 16px; border-radius: 4px; cursor: pointer; width: 100%; font-weight: bold; margin-top: 15px; }
         button.submit-btn:hover { background: #990000; }
-        .secondary-btn { background: #65676b; color: white; border: none; padding: 8px 15px; font-size: 14px; border-radius: 4px; cursor: pointer; margin-bottom: 15px; }
-        .secondary-btn:hover { background: #4e4f52; }
         .loading { color: #d97706; font-weight: bold; margin-top: 10px; }
         .back-btn { display: inline-block; margin-bottom: 15px; color: #b30000; text-decoration: none; font-weight: bold; }
         
@@ -44,7 +53,7 @@
 <body>
 
     <header>
-        <h1>BDS 26news</h1>
+        <h1>BDS26news</h1>
         <p>সঠিক সংবাদ, সত্যের সাথে</p>
     </header>
 
@@ -58,10 +67,10 @@
     <script>
         // ======= কনফিগারেশন =======
         const GITHUB_USERNAME = "mrsohagmia32-cell"; 
-        const REPO_NAME = "bds26news"; // আপনার নতুন রিপোজিটরির নাম
+        const REPO_NAME = "bds26news"; 
         const FILE_PATH = "posts.json"; 
-        const GITHUB_TOKEN = "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"; // আপনার নতুন টোকেন
-        const ADMIN_PASS = "Sa28747228@"; // এডমিন পাসওয়ার্ড
+        const GITHUB_TOKEN = "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"; 
+        const ADMIN_PASS = "Sa28747228@"; 
         // ===========================
 
         function router() {
@@ -123,14 +132,21 @@
                 postsContainer.innerHTML = "";
                 posts.slice().reverse().forEach((post) => {
                     let thumb = post.image ? post.image : 'https://via.placeholder.com/150x100?text=BDS+26';
+                    let postSlug = post.slug || 'news-' + Date.now();
+                    
+                    // সামারি দেখানোর সময় HTML ট্যাগগুলো রিমুভ করে সাধারণ টেক্সট দেখাবে
+                    let tempDiv = document.createElement("div");
+                    tempDiv.innerHTML = post.content;
+                    let plainText = tempDiv.textContent || tempDiv.innerText || "";
+
                     postsContainer.innerHTML += `
                         <div class="post-card">
                             <img src="${escapeHTML(thumb)}" class="post-thumb" alt="News Image">
                             <div class="post-info">
-                                <h3><a href="#" onclick="navigate('post', '${post.slug}'); return false;">${escapeHTML(post.title)}</a></h3>
+                                <h3><a href="#" onclick="navigate('post', '${postSlug}'); return false;">${escapeHTML(post.title)}</a></h3>
                                 <div class="post-date">প্রকাশিত: ${post.date}</div>
-                                <p>${escapeHTML(post.content.substring(0, 140))}...</p>
-                                <a href="#" onclick="navigate('post', '${post.slug}'); return false;" style="color: #b30000; text-decoration: none; font-weight: bold; font-size: 14px; display:inline-block; margin-top:5px;">পূর্ণাঙ্গ সংবাদ পড়ুন →</a>
+                                <p>${escapeHTML(plainText.substring(0, 140))}...</p>
+                                <a href="#" onclick="navigate('post', '${postSlug}'); return false;" style="color: #b30000; text-decoration: none; font-weight: bold; font-size: 14px; display:inline-block; margin-top:5px;">পূর্ণাঙ্গ সংবাদ পড়ুন →</a>
                             </div>
                         </div>
                     `;
@@ -156,6 +172,8 @@
                 if (post) {
                     document.title = post.title + " - BDS 26";
                     let imgHtml = post.image ? `<img src="${escapeHTML(post.image)}" class="single-post-image" alt="News Image">` : '';
+                    
+                    // এখানে innerHTML ব্যবহার করা হয়েছে যাতে হেডিং (h2, h3) এবং হাইপারলিংক (a tag) সরাসরি রেন্ডার হয়
                     container.innerHTML = `
                         <a class="back-btn" href="#" onclick="navigate('home'); return false;">← সব সংবাদ দেখুন</a>
                         <div style="border:none;">
@@ -163,7 +181,7 @@
                             <div class="post-date">প্রকাশিত: ${post.date}</div>
                             ${imgHtml}
                             <hr style="margin: 15px 0; border:0; border-top:1px solid #ddd;">
-                            <p style="font-size: 16px; white-space: pre-line; color: #333;">${escapeHTML(post.content)}</p>
+                            <div class="article-body">${post.content}</div>
                         </div>
                     `;
                 } else {
@@ -180,32 +198,62 @@
                 <h2>নতুন সংবাদ প্রকাশ করুন</h2>
                 
                 <label>সংবাদের শিরোনাম:</label>
-                <input type="text" id="post-title" placeholder="যেমন: আজকের তাজা খবর..." onkeyup="generateSlug()">
+                <input type="text" id="post-title" placeholder="যেমন: আজকের তাজা খবর..." oninput="autoGenerateSlug()">
                 
-                <label>পারমালিংক / স্লাগ (Slug - અંગ્રેজি বা সংখ্যায় ইউনিক নাম):</label>
-                <input type="text" id="post-slug" placeholder="যেমন: breaking-news-2026">
+                <label>ইউআরএল স্লাগ / পারমালিংক:</label>
+                <input type="text" id="post-slug" placeholder="ইংরেজিতে স্লাগ লিখুন...">
                 
-                <label>ছবির লিংক (Image URL):</label>
-                <input type="text" id="post-image" placeholder="ছবির সরাসরি লিংক এখানে দিন (যেমন: https://...)">
+                <label>ছবির সরাসরি লিংক (Image URL):</label>
+                <input type="text" id="post-image" placeholder="https://...">
                 
-                <label>সংবাদের বিস্তারিত বিবরণ:</label>
-                <textarea id="post-content" placeholder="সংবাদের বিস্তারিত বিবরণ এখানে লিখুন..."></textarea>
+                <label>সংবাদের বিস্তারিত বিবরণ (হেডিং ও লিংক ব্যবহার করতে পারেন):</label>
+                
+                <div class="editor-tools">
+                    <button type="button" onclick="insertTag('<h2>', '</h2>')">H2 হেডিং</button>
+                    <button type="button" onclick="insertTag('<h3>', '</h3>')">H3 হেডিং</button>
+                    <button type="button" onclick="insertLink()">সোর্স লিংক / ক্রেডিট</button>
+                </div>
+                <textarea id="post-content" style="border-radius: 0 0 4px 4px; margin-top:0;" placeholder="সংবাদের বিস্তারিত বিবরণ এখানে লিখুন..."></textarea>
                 
                 <button class="submit-btn" onclick="publishPost()">সংবাদ পাবলিশ করুন</button>
                 <div id="status-msg" class="loading"></div>
             `;
         }
 
-        function generateSlug() {
+        function insertTag(openTag, closeTag) {
+            let textarea = document.getElementById('post-content');
+            let start = textarea.selectionStart;
+            let end = textarea.selectionEnd;
+            let text = textarea.value;
+            let selectedText = text.substring(start, end);
+            
+            textarea.value = text.substring(0, start) + openTag + selectedText + closeTag + text.substring(end);
+            textarea.focus();
+            textarea.setSelectionRange(start + openTag.length, end + openTag.length);
+        }
+
+        function insertLink() {
+            let url = prompt("যে ওয়েবসাইটের লিংক বা ক্রেডিট দিতে চান তার URL দিন (যেমন: https://example.com):");
+            if (!url) return;
+            let linkText = prompt("লিংকের নাম বা সোর্সের নাম কী হবে? (যেমন: Prothom Alo বা সূত্র):", "সোর্স");
+            if (!linkText) linkText = url;
+            
+            let tag = `<a href="${url}" target="_blank">${linkText}</a>`;
+            let textarea = document.getElementById('post-content');
+            let start = textarea.selectionStart;
+            let end = textarea.selectionEnd;
+            let text = textarea.value;
+            
+            textarea.value = text.substring(0, start) + tag + text.substring(end);
+            textarea.focus();
+        }
+
+        function autoGenerateSlug() {
             let title = document.getElementById('post-title').value;
             let slug = title.toLowerCase()
-                .replace(/[^a-z0-9\s-]/g, '')
                 .trim()
-                .replace(/\s+/g, '-');
-            // যদি বাংলায় টাইটেল লেখে, তবে একটা ডিফল্ট বা টাইম স্ট্যাম্প বেসড স্লাগ তৈরি করতে সাহায্য করবে
-            if(!slug) {
-                slug = 'news-' + Date.now();
-            }
+                .replace(/[^\w\s-]/g, '')
+                .replace(/[\s_-]+/g, '-');
             document.getElementById('post-slug').value = slug;
         }
 
@@ -223,9 +271,13 @@
             let content = document.getElementById('post-content').value.trim();
             let msgBox = document.getElementById('status-msg');
 
-            if(!title || !content || !slug) {
-                alert("শিরোনাম, স্লাগ এবং বিবরণ উভয়ই পূরণ করুন!");
+            if(!title || !content) {
+                alert("শিরোনাম এবং বিবরণ উভয়ই পূরণ করুন!");
                 return;
+            }
+
+            if(!slug) {
+                slug = 'news-' + Date.now();
             }
 
             msgBox.innerHTML = "সংবাদ পাবলিশ হচ্ছে...";
@@ -247,7 +299,6 @@
                     posts = JSON.parse(decodedContent);
                 }
 
-                // চেক করা স্লাগ অলরেডি আছে কি না
                 if(posts.some(p => p.slug === slug)) {
                     slug = slug + '-' + Math.floor(Math.random() * 1000);
                 }
@@ -256,7 +307,7 @@
                     title: title,
                     slug: slug,
                     image: image,
-                    content: content,
+                    content: content, // এখানে HTML ফরম্যাটে কন্টেন্ট সেভ হবে
                     date: new Date().toLocaleDateString('bn-BD', { year: 'numeric', month: 'long', day: 'numeric' })
                 };
                 posts.push(newPost);
