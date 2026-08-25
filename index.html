@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BDS 24 - বিডিএস ২৪</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, sans-serif; }
+        body { background: #f0f2f5; color: #1c1e21; line-height: 1.6; }
+        header { background: #b30000; color: #fff; padding: 20px; text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        header h1 { font-size: 32px; font-weight: bold; letter-spacing: 1px; }
+        header p { font-size: 14px; color: #ffcccc; margin-top: 5px; }
+        nav { background: #800000; padding: 10px; text-align: center; }
+        nav button { background: none; border: none; color: white; font-size: 16px; cursor: pointer; margin: 0 15px; padding: 6px 15px; border-radius: 4px; font-weight: bold; }
+        nav button:hover, nav button.active { background: #b30000; }
+        .container { max-width: 800px; margin: 20px auto; padding: 20px; background: #fff; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        
+        .post-card { border-bottom: 1px solid #e5e5e5; padding: 20px 0; margin-bottom: 15px; }
+        .post-card:last-child { border-bottom: none; }
+        .post-card h3 a { color: #b30000; text-decoration: none; font-size: 22px; }
+        .post-card h3 a:hover { text-decoration: underline; }
+        .post-date { font-size: 12px; color: #65676b; margin: 5px 0 10px 0; }
+        .read-more { display: inline-block; margin-top: 10px; color: #b30000; text-decoration: none; font-weight: bold; }
+        
+        input, textarea { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccd0d5; border-radius: 4px; font-size: 14px; }
+        textarea { height: 200px; resize: vertical; }
+        button.submit-btn { background: #b30000; color: white; border: none; padding: 12px 20px; font-size: 16px; border-radius: 4px; cursor: pointer; width: 100%; font-weight: bold; }
+        button.submit-btn:hover { background: #990000; }
+        .secondary-btn { background: #65676b; color: white; border: none; padding: 8px 15px; font-size: 14px; border-radius: 4px; cursor: pointer; margin-bottom: 15px; }
+        .secondary-btn:hover { background: #4e4f52; }
+        .loading { color: #d97706; font-weight: bold; margin-top: 10px; }
+        .back-btn { display: inline-block; margin-bottom: 15px; color: #b30000; text-decoration: none; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>BDS 24</h1>
+        <p>সঠিক সংবাদ, সত্যের সাথে</p>
+    </header>
+
+    <nav>
+        <button onclick="navigate('home')" id="nav-home" class="active">হোমপেজ</button>
+        <button onclick="navigate('admin')" id="nav-admin">এডমিন প্যানেল</button>
+    </nav>
+
+    <div class="container" id="main-container"></div>
+
+    <script>
+        // ======= কনফিগারেশন =======
+        const GITHUB_USERNAME = "mrsohagmia32-cell"; 
+        const REPO_NAME = "hadis2"; // আপনার নতুন রিপোজিটরির নাম এখানে বসিয়ে দেবেন
+        const FILE_PATH = "posts.json"; 
+        const ADMIN_PASS = "Sa28747228@"; // আপনার এডমিন পাসওয়ার্ড
+        // ===========================
+
+        function router() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const postId = urlParams.get('post');
+            const page = urlParams.get('page');
+
+            if (postId !== null) {
+                loadSinglePost(parseInt(postId));
+            } else if (page === 'admin') {
+                checkAdminAuth();
+            } else {
+                loadHomePosts();
+            }
+        }
+
+        function navigate(target) {
+            if (target === 'home') {
+                window.location.href = window.location.pathname;
+            } else if (target === 'admin') {
+                window.location.href = window.location.pathname + '?page=admin';
+            }
+        }
+
+        function checkAdminAuth() {
+            setActiveNav('admin');
+            let userPass = prompt("এডমিন প্যানেলে প্রবেশ করতে পাসওয়ার্ড দিন:");
+            if (userPass === ADMIN_PASS) {
+                showAdminPanel();
+            } else {
+                alert("ভুল পাসওয়ার্ড!");
+                navigate('home');
+            }
+        }
+
+        async function loadHomePosts() {
+            setActiveNav('home');
+            const container = document.getElementById('main-container');
+            container.innerHTML = "<h2>সর্বশেষ সংবাদ</h2><div id='posts-container'>সংবাদ লোড হচ্ছে...</div>";
+            const postsContainer = document.getElementById('posts-container');
+
+            const url = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/main/${FILE_PATH}?t=${new Date().getTime()}`;
+            
+            try {
+                let response = await fetch(url);
+                if (!response.ok) {
+                    postsContainer.innerHTML = "<p>এখনো কোনো সংবাদ প্রকাশিত হয়নি।</p>";
+                    return;
+                }
+                let posts = await response.json();
+                
+                if(posts.length === 0) {
+                    postsContainer.innerHTML = "<p>কোনো সংবাদ পাওয়া যায়নি।</p>";
+                    return;
+                }
+
+                postsContainer.innerHTML = "";
+                posts.slice().reverse().forEach((post, index) => {
+                    const originalIndex = posts.length - 1 - index;
+                    postsContainer.innerHTML += `
+                        <div class="post-card">
+                            <h3><a href="?post=${originalIndex}">${escapeHTML(post.title)}</a></h3>
+                            <div class="post-date">প্রকাশিত: ${post.date}</div>
+                            <p>${escapeHTML(post.content.substring(0, 180))}...</p>
+                            <a href="?post=${originalIndex}" class="read-more">পূর্ণাঙ্গ সংবাদ পড়ুন →</a>
+                        </div>
+                    `;
+                });
+            } catch (error) {
+                postsContainer.innerHTML = "<p>সংবাদ লোড করতে সমস্যা হয়েছে।</p>";
+            }
+        }
+
+        async function loadSinglePost(index) {
+            setActiveNav('home');
+            const container = document.getElementById('main-container');
+            container.innerHTML = "<p>সংবাদ লোড হচ্ছে...</p>";
+
+            const url = `https://raw.githubusercontent.com/${GITHUB_USERNAME}/${REPO_NAME}/main/${FILE_PATH}?t=${new Date().getTime()}`;
+            
+            try {
+                let response = await fetch(url);
+                let posts = await response.json();
+                
+                if (posts[index]) {
+                    let post = posts[index];
+                    document.title = post.title + " - BDS 24";
+                    container.innerHTML = `
+                        <a class="back-btn" href="#" onclick="navigate('home'); return false;">← সব সংবাদ দেখুন</a>
+                        <div class="post-card" style="border:none;">
+                            <h2 style="color: #b30000; margin-bottom: 10px; font-size: 26px;">${escapeHTML(post.title)}</h2>
+                            <div class="post-date">প্রকাশিত: ${post.date}</div>
+                            <hr style="margin: 15px 0; border:0; border-top:1px solid #ddd;">
+                            <p style="font-size: 16px; white-space: pre-line; color: #333;">${escapeHTML(post.content)}</p>
+                        </div>
+                    `;
+                } else {
+                    container.innerHTML = "<p>সংবাদটি খুঁজে পাওয়া যায়নি!</p><br><a href='#' onclick=\"navigate('home')\">হোমপেজে ফিরে যান</a>";
+                }
+            } catch (error) {
+                container.innerHTML = "<p>সংবাদ লোড করতে সমস্যা হয়েছে।</p>";
+            }
+        }
+
+        function showAdminPanel() {
+            const container = document.getElementById('main-container');
+            let savedToken = localStorage.getItem('github_token') || '';
+
+            if (!savedToken) {
+                container.innerHTML = `
+                    <h2>গিটহাব টোকেন সেটআপ</h2>
+                    <p style="font-size: 13px; color: #666; margin-bottom: 15px;">আপনার ব্রাউজারে টোকেন সেভ করা নেই। নিচে আপনার GitHub Personal Access Token দিন:</p>
+                    <input type="password" id="token-input" placeholder="টোকেন এখানে পেস্ট করুন...">
+                    <button class="submit-btn" onclick="saveToken()">টোকেন সেভ করুন</button>
+                `;
+            } else {
+                container.innerHTML = `
+                    <h2>নতুন সংবাদ প্রকাশ করুন</h2>
+                    <button class="secondary-btn" onclick="clearToken()">টোকেন পরিবর্তন করুন</button>
+                    
+                    <input type="text" id="post-title" placeholder="সংবাদের শিরোনাম...">
+                    <textarea id="post-content" placeholder="সংবাদের বিস্তারিত বিবরণ এখানে লিখুন..."></textarea>
+                    <button class="submit-btn" onclick="publishPost()">সংবাদ পাবলিশ করুন</button>
+                    <div id="status-msg" class="loading"></div>
+                `;
+            }
+        }
+
+        function saveToken() {
+            let token = document.getElementById('token-input').value.trim();
+            if (!token) {
+                alert("দয়া করে টোকেন দিন!");
+                return;
+            }
+            localStorage.setItem('github_token', token);
+            alert("টোকেন সফলভাবে সেভ হয়েছে!");
+            showAdminPanel();
+        }
+
+        function clearToken() {
+            if (confirm("টোকেন পরিবর্তন করতে চান?")) {
+                localStorage.removeItem('github_token');
+                showAdminPanel();
+            }
+        }
+
+        function setActiveNav(tab) {
+            document.getElementById('nav-home').classList.remove('active');
+            document.getElementById('nav-admin').classList.remove('active');
+            if(tab === 'home') document.getElementById('nav-home').classList.add('active');
+            if(tab === 'admin') document.getElementById('nav-admin').classList.add('active');
+        }
+
+        async function publishPost() {
+            let token = localStorage.getItem('github_token');
+            let title = document.getElementById('post-title').value.trim();
+            let content = document.getElementById('post-content').value.trim();
+            let msgBox = document.getElementById('status-msg');
+
+            if(!token) {
+                alert("টোকেন পাওয়া যায়নি!");
+                return;
+            }
+
+            if(!title || !content) {
+                alert("শিরোনাম এবং বিবরণ উভয়ই পূরণ করুন!");
+                return;
+            }
+
+            msgBox.innerHTML = "সংবাদ পাবলিশ হচ্ছে...";
+
+            const apiUrl = `https://api.github.com/repos/${GITHUB_USERNAME}/${REPO_NAME}/contents/${FILE_PATH}`;
+
+            try {
+                let existingSha = null;
+                let posts = [];
+
+                let res = await fetch(apiUrl, {
+                    headers: { 'Authorization': `token ${token}` }
+                });
+
+                if (res.ok) {
+                    let fileData = await res.json();
+                    existingSha = fileData.sha;
+                    let decodedContent = decodeURIComponent(escape(atob(fileData.content)));
+                    posts = JSON.parse(decodedContent);
+                }
+
+                let newPost = {
+                    title: title,
+                    content: content,
+                    date: new Date().toLocaleDateString('bn-BD', { year: 'numeric', month: 'long', day: 'numeric' })
+                };
+                posts.push(newPost);
+
+                let encodedContent = btoa(unescape(encodeURIComponent(JSON.stringify(posts, null, 2))));
+
+                let updateRes = await fetch(apiUrl, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `token ${token}`,
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: `Publish news: ${title}`,
+                        content: encodedContent,
+                        sha: existingSha
+                    })
+                });
+
+                if (updateRes.ok) {
+                    msgBox.innerHTML = "সফলভাবে সংবাদ পাবলিশ হয়েছে!";
+                    document.getElementById('post-title').value = "";
+                    document.getElementById('post-content').value = "";
+                    setTimeout(() => { navigate('home'); }, 1500);
+                } else {
+                    let err = await updateRes.json();
+                    msgBox.innerHTML = "ত্রুটি হয়েছে: " + err.message;
+                }
+
+            } catch (e) {
+                msgBox.innerHTML = "সার্ভার কানেকশনে সমস্যা হয়েছে।";
+                console.error(e);
+            }
+        }
+
+        function escapeHTML(str) {
+            return str.replace(/[&<>'"]/g, 
+                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+            );
+        }
+
+        window.onload = router;
+    </script>
+</body>
+</html>
